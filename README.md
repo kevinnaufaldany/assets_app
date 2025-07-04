@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # asset_pt_timah
 
 A new Flutter project.
@@ -14,3 +15,7 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# assets_app
+Aplikasi flutter yang menjadi perantara antara survey officer ke database perusahaan
+>>>>>>> 58877cbb483d03886aa2e93c58f679e187f312d3
