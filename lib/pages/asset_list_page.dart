@@ -66,7 +66,10 @@ class _AssetListPageState extends State<AssetListPage> {
         itemCount: _filteredAssets.length,
         itemBuilder: (context, index) {
           final asset = _filteredAssets[index];
-          return AssetCard(asset: asset, number: index + 1);
+          // Menggunakan ID dari database sebagai nomor urut
+          final assetIdNumber = int.tryParse(asset.id) ?? (index + 1);
+          return AssetCard(asset: asset, number: assetIdNumber);
+
         },
       ),
     );
