@@ -99,7 +99,7 @@ class _AssetListPageState extends State<AssetListPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Cari berdasarkan ID, Kode, atau Alamat',
+                hintText: 'Cari ID, Kode, atau Alamat',
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 border: InputBorder.none,
                 filled: true,
