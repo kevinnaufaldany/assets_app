@@ -163,88 +163,88 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.9,
               decoration: const BoxDecoration(
-              color: Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-              ),
-            ),
-            child: Column(
-              children: [
-                // Header (mirip AppBar)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween, // spaceBetween
-                    children: [
-                      const SizedBox(width: 40), // spacer
-                      Text(
-                        _asset?.detailId ?? "Preview",
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () async {
-                          final shouldPop = await _showCancelConfirmationDialog();
-                          if (shouldPop && mounted) {
-                            Navigator.pop(context); } },
-                      )
-                    ],
-                  ),
+                color: Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _stagedPhotos.isEmpty
-                        ? const Center(child: Text("Tidak ada foto untuk di-preview."))
-                        : ListView.separated(
-                      itemCount: 1, // Tetap paksa hanya 1 item
-                      separatorBuilder: (context, index) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(_stagedPhotos.last), // <-- Gunakan .last bukan .first
-                        );
-                      },
+              ),
+              child: Column(
+                children: [
+                  // Header (mirip AppBar)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween, // spaceBetween
+                      children: [
+                        const SizedBox(width: 40), // spacer
+                        Text(
+                          _asset?.detailId ?? "Preview",
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () async {
+                            final shouldPop = await _showCancelConfirmationDialog();
+                            if (shouldPop && mounted) {
+                              Navigator.pop(context); } },
+                        )
+                      ],
                     ),
                   ),
-                ),
-                // Footer dengan tombol
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _stagedPhotos.isEmpty
+                          ? const Center(child: Text("Tidak ada foto untuk di-preview."))
+                          : ListView.separated(
+                        itemCount: 1, // Tetap paksa hanya 1 item
+                        separatorBuilder: (context, index) => const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(_stagedPhotos.last), // <-- Gunakan .last bukan .first
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final bool shouldRepeat = await _showCancelConfirmationDialog();
-                            if (shouldRepeat) {
-                              if (mounted) Navigator.pop(context); // Tutup preview
-                              _openCustomCamera(); // Buka lagi kamera
-                            } // Tutup bottom sheet
-                          },
-                          icon: const Icon(Icons.refresh),
-                          label: const Text("Ulang"),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                  // Footer dengan tombol
+                  Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final bool shouldRepeat = await _showCancelConfirmationDialog();
+                              if (shouldRepeat) {
+                                if (mounted) Navigator.pop(context); // Tutup preview
+                                _openCustomCamera(); // Buka lagi kamera
+                              } // Tutup bottom sheet
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text("Ulang"),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context); // Tutup bottom sheet
-                            _showUploadConfirmation();
-                          },
-                          icon: const Icon(Icons.check),
-                          label: const Text("Tambah"),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context); // Tutup bottom sheet
+                              _showUploadConfirmation();
+                            },
+                            icon: const Icon(Icons.check),
+                            label: const Text("Tambah"),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                           ),
                         ),
@@ -513,31 +513,67 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
         itemCount: allPhotos.length,
         itemBuilder: (context, index) {
           final photoUrl = allPhotos[index];
-          return GestureDetector(
-            onTap: () {
-              // Jika Anda punya photo_viewer_page, panggil di sini
-              // Navigator.push(context, MaterialPageRoute(builder: (context) => PhotoViewerPage(imageUrl: photoUrl)));
-            },
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: Image.network(photoUrl, fit: BoxFit.cover, errorBuilder: (context, error, stack) => const Icon(Icons.broken_image)),
-                ),
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: GestureDetector(
-                    onTap: () => _deletePhoto(photoUrl),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
-                      child: const Icon(Icons.delete, color: Colors.white, size: 18),
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8.0),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PhotoViewerPage(
+                      imageUrls: allPhotos,
+                      initialIndex: index,
+                      title: 'Foto ${_asset?.detailId ?? "Aset"}',
                     ),
                   ),
-                ),
-              ],
+                );
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Hero(
+                    tag: photoUrl,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: Image.network(
+                        photoUrl, 
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / 
+                                      loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stack) => Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => _deletePhoto(photoUrl),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
+                        child: const Icon(Icons.delete, color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

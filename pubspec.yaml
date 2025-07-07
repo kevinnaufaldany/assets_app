@@ -53,6 +53,13 @@ dependencies:
   flutter_compass: ^0.8.0
   flutter_phoenix: ^1.0.0
   shared_preferences: ^2.5.3
+  exifdart: 0.8.0-dev.2
+  exif: ^3.3.0
+  geoflutterfire3: ^1.0.1
+  # flutter_exif_plugin: ^1.1.0
+  gallery_saver_plus: ^3.2.8
+
+
 #  gallery_saver_plus: ^3.2.8
 #  file_picker: ^8.0.6
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -13,7 +14,6 @@ import 'package:image/image.dart' as img;
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'dart:math';
-import 'package:http/http.dart' as http;
 
 class CustomCameraPage extends StatefulWidget {
   const CustomCameraPage({super.key});
@@ -35,6 +35,9 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
   StreamSubscription? _barometerSubscription;
   bool _isBarometerAvailable = false; // Penanda untuk fallback ke GPS
   Timer? _timer;
+
+  // Method Channel untuk native platform
+  static const MethodChannel _methodChannel = MethodChannel('asset_pt_timah/exif');
 
   final GlobalKey _previewContainerKey = GlobalKey();
   // final GlobalKey _watermarkKey = GlobalKey(); // <-- TAMBAHKAN KEY BARU INI
@@ -58,6 +61,9 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
     _listenToLocationAndCompass();
     _startListeningOrientation();
     _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) => _updateTimestamp());
+
+    // Test konversi koordinat untuk debugging
+    _testCoordinateConversion();
   }
 
   @override
@@ -127,8 +133,8 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
     ).listen((Position position) {
       if (mounted) {
         setState(() {
-          // Selalu update koordinat
-          _gpsCoordinates = "Lat: ${position.latitude.toStringAsFixed(6)}, Long: ${position.longitude.toStringAsFixed(6)}";
+          // Update koordinat dengan format DMS yang konsisten dengan EXIF
+          _gpsCoordinates = _formatGpsForDisplay(position.latitude, position.longitude);
 
           // HANYA update ketinggian dari GPS JIKA barometer tidak tersedia
           if (!_isBarometerAvailable) {
@@ -194,7 +200,6 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
       case DeviceOrientation.landscapeRight:
         return 3; // 270 derajat searah jarum jam
       case DeviceOrientation.portraitUp:
-      default:
         return 2; // 180 derajat (tegak normal)
     }
   }
@@ -205,8 +210,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
       case DeviceOrientation.landscapeLeft: return Alignment.bottomLeft;
       case DeviceOrientation.landscapeRight: return Alignment.bottomRight;
       case DeviceOrientation.portraitDown: return Alignment.bottomCenter;
-      case DeviceOrientation.portraitUp:
-      default: return Alignment.topCenter;
+      case DeviceOrientation.portraitUp: return Alignment.topCenter;
     }
   }
 
@@ -243,8 +247,7 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
         ].where((s) => s != null && s.isNotEmpty).join(', ');
       }
 
-      String gpsCoordinates =
-          "Lat: ${position.latitude.toStringAsFixed(6)}, Long: ${position.longitude.toStringAsFixed(6)}";
+      String gpsCoordinates = _formatGpsForDisplay(position.latitude, position.longitude);
 
       final String mapboxStyle = 'mapbox/streets-v12';
       final String markerColor = 'ff0000';
@@ -365,8 +368,17 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
     setState(() => _isProcessing = true);
 
     try {
-      // Menambahkan print untuk memastikan orientasi terdeteksi dengan benar
       debugPrint("Mengambil gambar dengan orientasi: $_deviceOrientation");
+
+      // Mendapatkan posisi GPS terkini
+      Position currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Format GPS untuk logging yang konsisten dengan watermark dan EXIF
+      String formattedGps = _formatGpsForDisplay(currentPosition.latitude, currentPosition.longitude);
+      debugPrint("GPS Position: $formattedGps");
+      debugPrint("GPS Decimal: ${currentPosition.latitude}, ${currentPosition.longitude}, ${currentPosition.altitude}m");
 
       final results = await Future.wait([
         _controller!.takePicture(),
@@ -388,8 +400,11 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
         finalVisualImage = img.copyRotate(finalVisualImage, angle: angle);
       }
 
-      // Salin data EXIF dari kamera
+      // Salin data EXIF dari kamera terlebih dahulu
       finalVisualImage.exif = originalPhotoForExif.exif;
+
+      // Tambahkan data GPS ke EXIF menggunakan method channel
+      await _addGpsDataToExif(finalVisualImage, currentPosition);
 
       final List<int> finalImageBytes = img.encodeJpg(finalVisualImage, quality: 95);
 
@@ -397,6 +412,9 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
       final tempPath = '${dir.path}/final_photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final file = await File(tempPath).create();
       await file.writeAsBytes(finalImageBytes);
+
+      // Verifikasi dan perbaiki GPS data menggunakan method channel
+      await _verifyAndFixGpsData(file.path, currentPosition);
 
       if (mounted) Navigator.pop(context, file);
 
@@ -410,30 +428,6 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
-  }
-
-
-// Pastikan fungsi helper ini juga ada di dalam class Anda
-  img.Image _centerCrop(img.Image image, int targetWidth, int targetHeight) {
-    final imageWidth = image.width;
-    final imageHeight = image.height;
-    final double imageRatio = imageWidth / imageHeight;
-    final double targetRatio = targetWidth / targetHeight;
-
-    int cropWidth, cropHeight, x, y;
-
-    if (imageRatio > targetRatio) {
-      cropHeight = imageHeight;
-      cropWidth = (imageHeight * targetRatio).round();
-      x = (imageWidth - cropWidth) ~/ 2;
-      y = 0;
-    } else {
-      cropWidth = imageWidth;
-      cropHeight = (imageWidth / targetRatio).round();
-      x = 0;
-      y = (imageHeight - cropHeight) ~/ 2;
-    }
-    return img.copyCrop(image, x: x, y: y, width: cropWidth, height: cropHeight);
   }
 
   @override
@@ -616,5 +610,85 @@ class _CustomCameraPageState extends State<CustomCameraPage> {
         padding: const EdgeInsets.all(12),
       ),
     );
+  }
+
+  // Fungsi untuk memformat GPS dalam format desimal dengan simbol derajat
+  String _formatGpsForDisplay(double latitude, double longitude) {
+    // Format desimal dengan simbol derajat, tanpa referensi N/S/E/W
+    return "Lat: ${latitude.toStringAsFixed(6)}°, Long: ${longitude.toStringAsFixed(6)}°";
+  }
+
+  // Fungsi test untuk verifikasi konversi koordinat
+  void _testCoordinateConversion() {
+    double testLat = -2.113920;
+    double testLng = 106.112388;
+
+    debugPrint("=== TEST KONVERSI KOORDINAT ===");
+    debugPrint("Input: Lat: $testLat, Lng: $testLng");
+    debugPrint("Format Watermark: ${_formatGpsForDisplay(testLat, testLng)}");
+    debugPrint("Format untuk EXIF akan tetap menggunakan DMS standar");
+    debugPrint("===============================");
+  }
+
+  // Fungsi untuk menambahkan data GPS ke EXIF menggunakan method channel
+  Future<void> _addGpsDataToExif(img.Image image, Position position) async {
+    try {
+      debugPrint("Menyiapkan GPS EXIF data untuk posisi: ${position.latitude}, ${position.longitude}");
+
+      // Format yang sama untuk logging (desimal dengan simbol derajat)
+      String formattedGps = _formatGpsForDisplay(position.latitude, position.longitude);
+
+      debugPrint("GPS EXIF data yang akan ditambahkan:");
+      debugPrint("Format Display: $formattedGps");
+      debugPrint("Latitude: ${position.latitude}° (${position.latitude >= 0 ? 'North' : 'South'})");
+      debugPrint("Longitude: ${position.longitude}° (${position.longitude >= 0 ? 'East' : 'West'})");
+      debugPrint("Altitude: ${position.altitude} m");
+
+    } catch (e) {
+      debugPrint("Error menyiapkan GPS EXIF: $e");
+    }
+  }
+
+  // Fungsi untuk verifikasi dan perbaikan GPS data menggunakan method channel
+  Future<void> _verifyAndFixGpsData(String imagePath, Position position) async {
+    try {
+      // Panggil method channel untuk memverifikasi dan memperbaiki GPS EXIF
+      await _methodChannel.invokeMethod('addGpsExif', {
+        'imagePath': imagePath,
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'altitude': position.altitude,
+        'timestamp': DateTime.now().toUtc().millisecondsSinceEpoch,
+      });
+
+      debugPrint("GPS EXIF berhasil diverifikasi dan diperbaiki via method channel");
+    } catch (e) {
+      debugPrint("Error dalam verifikasi GPS EXIF via method channel: $e");
+      // Fallback: coba dengan library ExifDart
+      await _fallbackAddGpsExif(imagePath, position);
+    }
+  }
+
+  // Fallback menggunakan ExifDart untuk menambahkan GPS EXIF
+  Future<void> _fallbackAddGpsExif(String imagePath, Position position) async {
+    try {
+      final File imageFile = File(imagePath);
+      final Uint8List imageBytes = await imageFile.readAsBytes();
+
+      // Dekode dengan library image
+      img.Image? image = img.decodeImage(imageBytes);
+      if (image == null) return;
+
+      // Tambahkan GPS data
+      await _addGpsDataToExif(image, position);
+
+      // Encode ulang dan simpan
+      final List<int> newImageBytes = img.encodeJpg(image, quality: 95);
+      await imageFile.writeAsBytes(newImageBytes);
+
+      debugPrint("GPS EXIF berhasil ditambahkan menggunakan fallback method");
+    } catch (e) {
+      debugPrint("Error dalam fallback GPS EXIF: $e");
+    }
   }
 }

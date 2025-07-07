@@ -8,7 +8,7 @@ import 'package:path/path.dart' as path;
 
 class ApiService {
   // PENTING: Gunakan IP ini untuk mengakses localhost dari emulator Android
-  final String _baseUrl = 'http://192.168.207.86/api_asset';
+  final String _baseUrl = 'http://172.29.195.85/api_asset';
 
   // Fungsi untuk mengambil semua data aset dari server
   Future<List<Asset>> getAssets() async {
