@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
       // Jika terjadi eror, tampilkan pesan ke pengguna.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal melakukan login: $error')),
+          SnackBar(content: Text('Gagal melakukan login: Anda tidak menggunakan akun PT Timah (...@pttimah) dan anda tidak di perbolehkan mengakses Aplikasi ini')),
         );
       }
     } finally {
